@@ -31,7 +31,6 @@
     --duration-normal: 250ms;
     --duration-slow: 350ms;
   }
-
   .dark {
     --background: 0 0% 13%;
     --foreground: 0 0% 96%;
@@ -56,10 +55,14 @@
 }
 
 @layer base {
+  html, body {
+    overflow-x: clip !important;
+    max-width: 100%;
+    position: relative;
+  }
   * {
     border-color: hsl(var(--border));
   }
-
   body {
     background-color: #212121;
     color: #f5f5f5;
@@ -68,12 +71,10 @@
     text-rendering: optimizeLegibility;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
-
   ::selection {
     background-color: rgba(114, 158, 132, 0.25);
     color: #729E84;
   }
-
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background-color: transparent; }
   ::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.15); border-radius: 9999px; }
@@ -99,10 +100,8 @@
   .font-sans {
     font-family: var(--font-sans), sans-serif !important;
   }
-
   .scrollbar-none::-webkit-scrollbar { display: none; }
   .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
-
   .text-gradient {
     background: linear-gradient(135deg, #729E84, #8DB89E);
     -webkit-background-clip: text;
@@ -129,7 +128,6 @@ html.lenis, html.lenis body {
   animation: 0.65s cubic-bezier(0.22, 1, 0.36, 1) both wipe-out-left;
   z-index: 2;
 }
-
 ::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;

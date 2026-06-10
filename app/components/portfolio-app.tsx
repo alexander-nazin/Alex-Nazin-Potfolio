@@ -178,44 +178,44 @@ function OrchestratedSection({
 }: OrchestratedSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+  
   const [originYPercent, setOriginYPercent] = useState(50)
   const [contentHeight, setContentHeight] = useState(0)
   const [viewportHeight, setViewportHeight] = useState(800)
-
+  
   useEffect(() => {
     let lastHeight = window.innerHeight
-    // Safely initialize to exact window height on mount to guarantee perfect alignments
     setViewportHeight(window.innerHeight)
-
+    
     const updateHeight = () => {
       const currentHeight = window.innerHeight
       const isMob = typeof window !== 'undefined' && window.innerWidth < 768
       
       if (isMob) {
-        // On mobile, ignore small height changes (under 100px) caused by address bar scroll toggles
         if (Math.abs(currentHeight - lastHeight) > 100) {
           setViewportHeight(currentHeight)
           lastHeight = currentHeight
         }
       } else {
-        // On desktop, always update normally during any window resize
         setViewportHeight(currentHeight)
         lastHeight = currentHeight
       }
-
       if (contentRef.current) {
         setContentHeight(contentRef.current.offsetHeight)
       }
     }
+    
     updateHeight()
     window.addEventListener('resize', updateHeight)
     let resizeObserver: ResizeObserver | null = null
+    
     if (dynamicHeight && contentRef.current) {
       resizeObserver = new ResizeObserver(() => {
         updateHeight()
       })
       resizeObserver.observe(contentRef.current)
     }
+    
     return () => {
       window.removeEventListener('resize', updateHeight)
       if (resizeObserver) {
@@ -223,7 +223,7 @@ function OrchestratedSection({
       }
     }
   }, [children, dynamicHeight])
-
+  
   useEffect(() => {
     const calculateOrigin = () => {
       if (containerRef.current) {
@@ -243,20 +243,20 @@ function OrchestratedSection({
       window.removeEventListener('resize', calculateOrigin)
     }
   }, [children, contentHeight])
-
+  
   const { scrollYProgress: exitProgress } = useScroll({
     target: containerRef,
     offset: exitType === 'shade' ? ['end 2', 'end 1'] : ['end end', 'end start'],
   })
-
+  
   const { scrollYProgress: entryProgress } = useScroll({
     target: containerRef,
     offset: ['start end', 'start start'],
   })
-
+  
   const rotate = useTransform(entryProgress, [0, 1], disableRotate ? [0, 0] : [2, 0])
   const shouldShrink = exitType === 'shrink'
-
+  
   const scale = useTransform(
     exitProgress,
     [0, 0.2, 0.65],
@@ -266,7 +266,7 @@ function OrchestratedSection({
       (isLast || !shouldShrink) ? 1 : 0.25
     ]
   )
-
+  
   const opacity = useTransform(
     exitProgress,
     [0, 0.2, 0.65],
@@ -276,20 +276,18 @@ function OrchestratedSection({
       (isLast || !shouldShrink) ? 1 : 0
     ]
   )
-
+  
   const exitShadeOpacity = useTransform(
     exitProgress,
     [0.3, 0.98],
     [0, exitType === 'shade' ? 0.85 : 0]
   )
-
+  
   const { scrollYProgress: selfScrollProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end start'],
   })
-
-  // Computes the dynamic unshade timing on every frame relative to your viewport height.
-  // Unshading is completed within the first 60% of viewport-height of scroll, leaving a safe, pristine window.
+  
   const entryUnshadeOpacity = useTransform(selfScrollProgress, (progress) => {
     const totalTrackHeight = contentHeight + viewportHeight + scrollBuffer
     const targetProgress = totalTrackHeight > 0 ? (viewportHeight * 0.6) / totalTrackHeight : 0.05
@@ -297,21 +295,20 @@ function OrchestratedSection({
     if (progress >= targetProgress) return 0
     return 0.85 * (1 - progress / targetProgress)
   })
-
+  
   const activeShadeOpacity = entryUnshade ? entryUnshadeOpacity : exitShadeOpacity
-
   const resolvedTrackHeight = exitType === 'shade'
     ? (contentHeight + viewportHeight + scrollBuffer) + 'px'
     : undefined
-
+    
   const stickyTop = (exitType === 'shade' && contentHeight > viewportHeight && !alignTop)
     ? (viewportHeight - contentHeight) + 'px'
     : '0px'
-
+    
   const transitionClass = dynamicHeight
     ? ""
     : "transition-[top] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-
+    
   return (
     <div
       ref={containerRef}
@@ -350,10 +347,11 @@ function OrchestratedSection({
 
 export default function PortfolioApp() {
   const [mounted, setMounted] = useState(false)
+  
   useEffect(() => {
     setMounted(true)
   }, [])
-
+  
   useEffect(() => {
     if (!mounted) return
     const lenis = new Lenis({
@@ -361,15 +359,18 @@ export default function PortfolioApp() {
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
     })
+    
     if (typeof window !== 'undefined') {
       (window as any).lenis = lenis
     }
+    
     function raf(time: number) {
       lenis.raf(time)
       requestAnimationFrame(raf)
     }
+    
     requestAnimationFrame(raf)
-
+    
     return () => {
       lenis.destroy()
       if (typeof window !== 'undefined') {
@@ -377,15 +378,15 @@ export default function PortfolioApp() {
       }
     }
   }, [mounted])
-
+  
   if (!mounted) {
     return <div className="min-h-screen bg-[#212121]" />
   }
-
+  
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen w-full max-w-full overflow-x-clip">
       <Navigation />
-      <main className="relative">
+      <main className="relative w-full max-w-full overflow-x-clip">
         <LandingSection />
         
         {/* DynamicHeight is enabled strictly here so height shifts during collapsible expansions are smoothly animated */}

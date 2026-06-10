@@ -31,7 +31,14 @@ export default function LandingSection() {
   const nameLetters = 'ALEX NAZIN'.split('')
   
   return (
-    <section id="landing" className="sticky top-0 z-[1] h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden">
+    <section 
+      id="landing" 
+      className="sticky top-0 z-[1] h-screen lg:h-screen h-[100dvh] w-full flex flex-col items-center justify-center overflow-hidden"
+      style={{
+        transform: 'translate3d(0,0,0)',
+        WebkitTransform: 'translate3d(0,0,0)'
+      }}
+    >
       {/* Animated pattern background */}
       <div className="absolute inset-0">
         <AnimatedBg />
@@ -47,7 +54,7 @@ export default function LandingSection() {
       
       {/* Parent container handles the scroll movement, fade, and scale together */}
       <motion.div style={{ y: contentY, opacity, scale: nameScale }} className="relative text-center px-6 z-[2]">
-        <h1 className="font-heading text-[clamp(3rem,10vw,9rem)] font-bold tracking-tighter leading-[0.85] text-white mb-8">
+        <h1 className="font-heading text-[clamp(2.2rem,10vw,9rem)] font-bold tracking-tighter leading-[0.85] text-white mb-8">
           <span className="inline-block overflow-hidden">
             {nameLetters.map((letter, i) => (
               <motion.span
