@@ -588,15 +588,25 @@ export default function ToolsSection() {
       const isMob = w < 768
       const padX = isMob ? 40 : 0
       
-      // Dynamically scale down the square size on short mobile screens to guarantee tiles fit in the visible height
+      // Header safety offsets: 80px for portfolio nav, 40px bottom safety margin
+      const headerOffset = isMob ? 80 : 0
+      const bottomOffset = isMob ? 40 : 0
+      const activeHeight = isMob ? (h - headerOffset - bottomOffset) : h
+      
+      // Dynamically scale down the square size on short mobile screens using activeHeight to guarantee tiles fit cleanly
       const squareSize = isMob 
-        ? Math.min(Math.floor((w - padX) / 8), Math.floor((h - 80) / 14)) 
+        ? Math.min(Math.floor((w - padX) / 8), Math.floor(activeHeight / 14)) 
         : 50
         
       const cols = isMob ? 8 : Math.floor(w / squareSize)
       const rows = isMob ? 14 : Math.floor(h / squareSize)
       const padLeft = Math.floor((w - (cols * squareSize)) / 2)
-      const padTop = Math.floor((h - (rows * squareSize)) / 2)
+      
+      // Pad top starts below the header offset on mobile to ensure top tile never overlaps or touches nav header
+      const padTop = isMob 
+        ? headerOffset + Math.floor((activeHeight - (rows * squareSize)) / 2)
+        : Math.floor((h - (rows * squareSize)) / 2)
+        
       const vertical: number[] = []
       let vPos = padLeft
       while (vPos >= 0) { vertical.push(vPos); vPos -= squareSize }
@@ -721,10 +731,10 @@ export default function ToolsSection() {
   return (
     <div ref={containerRef} id="tools" className="relative h-[450vh] w-full">
       <div className="sticky top-0 left-0 h-screen w-full flex items-center justify-center overflow-hidden z-[4]">
-        {/* Changed to className="fixed" to make the animated BG completely static behind the screen layout */}
-        <motion.div style={{ opacity: bgOpacity }} className="fixed inset-0 z-[2]">
+        {/* Added pointer-events-none to prevent the fixed background container from intercepting user input over lower layers */}
+        <motion.div style={{ opacity: bgOpacity }} className="fixed inset-0 z-[2] pointer-events-none">
           <AnimatedBg />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#212121]/30 via-transparent to-[#212121]/50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#212121]/30 via-transparent to-[#212121]/50 pointer-events-none" />
         </motion.div>
         
         <motion.div style={{ opacity: lightBgOpacity }} className="absolute inset-0 bg-[#ffffff] z-[1]" />
