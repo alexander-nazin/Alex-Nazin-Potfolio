@@ -180,18 +180,29 @@ function OrchestratedSection({
   const contentRef = useRef<HTMLDivElement>(null)
   const [originYPercent, setOriginYPercent] = useState(50)
   const [contentHeight, setContentHeight] = useState(0)
-  const [viewportHeight, setViewportHeight] = useState(600)
+  const [viewportHeight, setViewportHeight] = useState(800)
 
   useEffect(() => {
     let lastHeight = window.innerHeight
+    // Safely initialize to exact window height on mount to guarantee perfect alignments
+    setViewportHeight(window.innerHeight)
+
     const updateHeight = () => {
       const currentHeight = window.innerHeight
-      // Prevent rapid layout height shifts caused by the mobile address bar expanding/collapsing.
-      // We only update the height threshold if the resize is greater than 100px (e.g., orientation change).
-      if (Math.abs(currentHeight - lastHeight) > 100) {
+      const isMob = typeof window !== 'undefined' && window.innerWidth < 768
+      
+      if (isMob) {
+        // On mobile, ignore small height changes (under 100px) caused by address bar scroll toggles
+        if (Math.abs(currentHeight - lastHeight) > 100) {
+          setViewportHeight(currentHeight)
+          lastHeight = currentHeight
+        }
+      } else {
+        // On desktop, always update normally during any window resize
         setViewportHeight(currentHeight)
         lastHeight = currentHeight
       }
+
       if (contentRef.current) {
         setContentHeight(contentRef.current.offsetHeight)
       }
