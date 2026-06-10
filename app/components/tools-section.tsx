@@ -587,7 +587,12 @@ export default function ToolsSection() {
       const h = document.documentElement.clientHeight
       const isMob = w < 768
       const padX = isMob ? 40 : 0
-      const squareSize = isMob ? Math.floor((w - padX) / 8) : 50
+      
+      // Dynamically scale down the square size on short mobile screens to guarantee tiles fit in the visible height
+      const squareSize = isMob 
+        ? Math.min(Math.floor((w - padX) / 8), Math.floor((h - 80) / 14)) 
+        : 50
+        
       const cols = isMob ? 8 : Math.floor(w / squareSize)
       const rows = isMob ? 14 : Math.floor(h / squareSize)
       const padLeft = Math.floor((w - (cols * squareSize)) / 2)
@@ -613,6 +618,12 @@ export default function ToolsSection() {
   }, [])
   
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end end'] })
+  
+  // Track entry scroll progress to fade-in the fixed background statically
+  const { scrollYProgress: entryProgress } = useScroll({
+    target: containerRef,
+    offset: ['start end', 'start start']
+  })
   
   useEffect(() => {
     if (!scrollYProgress) return
@@ -660,7 +671,17 @@ export default function ToolsSection() {
     }
   }, [cardsLaunched])
   
-  const bgOpacity = useTransform(scrollYProgress, (pos) => (pos < 0.46 ? 1 : 0))
+  // Static-fade background that tracks entry progress and exit scroll progress dynamically
+  const bgOpacity = useTransform(
+    [entryProgress, scrollYProgress],
+    ([latestEntry, latestScroll]) => {
+      if (latestScroll > 0) {
+        return latestScroll < 0.46 ? 1 : 0
+      }
+      return latestEntry
+    }
+  )
+  
   const textOpacity = useTransform(scrollYProgress, (pos) => (pos < 0.46 ? 1 : 0))
   const lightBgOpacity = useTransform(scrollYProgress, (pos) => (pos < 0.46 ? 0 : 1))
   const textScale = useTransform(scrollYProgress, [0.0, 0.25, 0.37, 0.45, 0.46], [1, 2.2, 8, 35, 160])
@@ -699,8 +720,9 @@ export default function ToolsSection() {
   
   return (
     <div ref={containerRef} id="tools" className="relative h-[450vh] w-full">
-      <div className="sticky top-0 left-0 h-[100svh] lg:h-screen w-full flex items-center justify-center overflow-hidden z-[4]">
-        <motion.div style={{ opacity: bgOpacity }} className="absolute inset-0 z-[2]">
+      <div className="sticky top-0 left-0 h-screen w-full flex items-center justify-center overflow-hidden z-[4]">
+        {/* Changed to className="fixed" to make the animated BG completely static behind the screen layout */}
+        <motion.div style={{ opacity: bgOpacity }} className="fixed inset-0 z-[2]">
           <AnimatedBg />
           <div className="absolute inset-0 bg-gradient-to-b from-[#212121]/30 via-transparent to-[#212121]/50" />
         </motion.div>
