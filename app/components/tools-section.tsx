@@ -270,8 +270,10 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
 
       ctx.lineWidth = 1
 
+      // Declare nodes outside so both loops and sub-functions can safely access them
+      const nodes: { x: number; y: number }[][] = []
+
       if (cardsLaunched) {
-        const nodes: { x: number; y: number }[][] = []
         for (let i = 0; i < numCols; i++) {
           nodes[i] = []
           const baseX = gridLines.vertical[i]
@@ -292,11 +294,38 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           }
         }
 
-        // Draw horizontal stretches
+        const getNode = (col: number, row: number) => {
+          if (nodes && nodes[col] && nodes[col][row]) {
+            return nodes[col][row]
+          }
+          const baseX = gridLines.vertical && gridLines.vertical[col] !== undefined
+            ? gridLines.vertical[col]
+            : ((gridLines.vertical && gridLines.vertical[0] !== undefined ? gridLines.vertical[0] : 0) + col * squareSize)
+          const baseY = gridLines.horizontal && gridLines.horizontal[row] !== undefined
+            ? gridLines.horizontal[row]
+            : ((gridLines.horizontal && gridLines.horizontal[0] !== undefined ? gridLines.horizontal[0] : 0) + row * squareSize)
+
+          const dx = trailMouse.x - baseX
+          const dy = trailMouse.y - baseY
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          let tx = baseX
+          let ty = baseY
+          const finalInfluence = canvasCardsActive ? influenceRadius : 0
+          if (finalInfluence > 0 && dist < finalInfluence && dist > 0) {
+            const power = Math.pow(1 - dist / finalInfluence, 1.5)
+            tx += dx * power * strength * currentMultiplier
+            ty += dy * power * strength * currentMultiplier
+          }
+          return { x: tx, y: ty }
+        }
+
+        // Draw horizontal stretches (with optional chaining to prevent undefined indexing during resize)
         for (let j = 0; j < numRows; j++) {
           for (let i = 0; i < numCols - 1; i++) {
-            const p1 = nodes[i][j]
-            const p2 = nodes[i+1][j]
+            const p1 = nodes[i]?.[j]
+            const p2 = nodes[i+1]?.[j]
+            if (!p1 || !p2) continue
+
             const midX = (p1.x + p2.x) / 2
             const midY = (p1.y + p2.y) / 2
             const dx = midX - trailMouse.x
@@ -328,11 +357,13 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           }
         }
 
-        // Draw vertical stretches
+        // Draw vertical stretches (with optional chaining to prevent undefined indexing during resize)
         for (let i = 0; i < numCols; i++) {
           for (let j = 0; j < numRows - 1; j++) {
-            const p1 = nodes[i][j]
-            const p2 = nodes[i][j+1]
+            const p1 = nodes[i]?.[j]
+            const p2 = nodes[i]?.[j+1]
+            if (!p1 || !p2) continue
+
             const midX = (p1.x + p2.x) / 2
             const midY = (p1.y + p2.y) / 2
             const dx = midX - trailMouse.x
@@ -364,10 +395,12 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           }
         }
 
-        // Draw pinpoint crossing dots
+        // Draw pinpoint crossing dots (with optional chaining to prevent undefined indexing during resize)
         for (let i = 0; i < numCols; i++) {
           for (let j = 0; j < numRows; j++) {
-            const node = nodes[i][j]
+            const node = nodes[i]?.[j]
+            if (!node) continue
+
             const dx = node.x - trailMouse.x
             const dy = node.y - trailMouse.y
             const dist = Math.sqrt(dx * dx + dy * dy)
@@ -394,18 +427,18 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
             if (!cardPos) return
             const colIndex = nodesColOffset + colOffset + cardPos.col
             const rowIndex = nodesRowOffset + rowOffset + cardPos.row
-            const c1 = nodes[colIndex][rowIndex]
-            const c2 = nodes[colIndex + cardPos.w][rowIndex]
-            const c4 = nodes[colIndex][rowIndex + cardPos.h]
+            const c1 = getNode(colIndex, rowIndex)
+            const c2 = getNode(colIndex + cardPos.w, rowIndex)
+            const c4 = getNode(colIndex, rowIndex + cardPos.h)
             const cardW = cardPos.w * squareSize + 2
             const cardH = cardPos.h * squareSize + 2
 
             for (let u = 0; u < cardPos.w; u++) {
               for (let v = 0; v < cardPos.h; v++) {
-                const sc1 = nodes[colIndex + u][rowIndex + v]
-                const sc2 = nodes[colIndex + u + 1][rowIndex + v]
-                const sc3 = nodes[colIndex + u + 1][rowIndex + v + 1]
-                const sc4 = nodes[colIndex + u][rowIndex + v + 1]
+                const sc1 = getNode(colIndex + u, rowIndex + v)
+                const sc2 = getNode(colIndex + u + 1, rowIndex + v)
+                const sc3 = getNode(colIndex + u + 1, rowIndex + v + 1)
+                const sc4 = getNode(colIndex + u, rowIndex + v + 1)
                 ctx.fillStyle = tool.bgColor
                 ctx.beginPath()
                 ctx.moveTo(sc1.x, sc1.y)
