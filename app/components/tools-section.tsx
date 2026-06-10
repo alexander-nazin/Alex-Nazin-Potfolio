@@ -5,9 +5,9 @@ import Image from 'next/image'
 import AnimatedBg from './animated-bg'
 
 const TOOLS_LIST = [
-  { name: 'Articulate 360', logoSrc: '/images/articulate.webp', bgColor: '#bae6fd', borderColor: '#0369a1' },
-  { name: 'Vyond', logoSrc: '/images/vyond.webp', bgColor: '#fed7aa', borderColor: '#c2410c' },
-  { name: 'Camtasia', logoSrc: '/images/camtasia.webp', bgColor: '#bbf7d0', borderColor: '#15803d' },
+  { name: 'Articulate 360', logoSrc: '/images/Articulate.webp', bgColor: '#bae6fd', borderColor: '#0369a1' },
+  { name: 'Vyond', logoSrc: '/images/Vyond.webp', bgColor: '#fed7aa', borderColor: '#c2410c' },
+  { name: 'Camtasia', logoSrc: '/images/Camtasia.webp', bgColor: '#bbf7d0', borderColor: '#15803d' },
   { name: 'Adobe Illustrator', logoSrc: '/images/illustrator.webp', bgColor: '#fde68a', borderColor: '#b45309' },
   { name: 'Microsoft PowerPoint', logoSrc: '/images/PPT.webp', bgColor: '#fecdd3', borderColor: '#be123c' },
   { name: 'Generative AI', logoSrc: '/images/Generative AI.webp', bgColor: '#e0e7ff', borderColor: '#6b21a8' },
@@ -97,12 +97,10 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-
     let animId: number
     let dpr = window.devicePixelRatio || 1
     const clientW = document.documentElement.clientWidth
     const clientH = document.documentElement.clientHeight
-
     let w = canvas.width = clientW * dpr
     let h = canvas.height = clientH * dpr
     canvas.style.width = `${clientW}px`
@@ -176,7 +174,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           touch.clientX <= rect.right &&
           touch.clientY >= rect.top &&
           touch.clientY <= rect.bottom
-
         if (isStickyActive && isInside) {
           mouse.x = touch.clientX
           mouse.y = touch.clientY
@@ -198,7 +195,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           touch.clientX <= rect.right &&
           touch.clientY >= rect.top &&
           touch.clientY <= rect.bottom
-
         if (isStickyActive && isInside) {
           mouse.x = touch.clientX
           mouse.y = touch.clientY
@@ -223,7 +219,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
     window.addEventListener('mouseleave', handleMouseLeave, { passive: true })
     window.addEventListener('mousedown', handleMouseDown, { passive: true })
     window.addEventListener('mouseup', handleMouseUp, { passive: true })
-
     window.addEventListener('touchstart', handleTouchStart, { passive: true })
     window.addEventListener('touchmove', handleTouchMove, { passive: true })
     window.addEventListener('touchend', handleTouchEnd, { passive: true })
@@ -233,7 +228,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
       ctx.clearRect(0, 0, w, h)
       ctx.save()
       ctx.scale(dpr, dpr)
-
       const screenW = document.documentElement.clientWidth
       const screenH = document.documentElement.clientHeight
 
@@ -256,15 +250,13 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
       const layoutWidth = isMobileDevice ? 8 : 26
       const layoutHeight = isMobileDevice ? 14 : 11
       const squareSize = gridLines.squareSize || 50
-
       const colOffset = Math.max(0, Math.floor((gridLines.cols - layoutWidth) / 2))
       const rowOffset = Math.max(0, Math.floor((gridLines.rows - layoutHeight) / 2))
       const nodesColOffset = gridLines.vertical.filter(x => x < gridLines.padLeft).length
       const nodesRowOffset = gridLines.horizontal.filter(y => y < gridLines.padTop).length
-
-      const lineWidth = 2
       const numCols = gridLines.vertical.length
       const numRows = gridLines.horizontal.length
+
       if (numCols === 0 || numRows === 0) {
         ctx.restore()
         animId = requestAnimationFrame(draw)
@@ -285,7 +277,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           const baseX = gridLines.vertical[i]
           for (let j = 0; j < numRows; j++) {
             const baseY = gridLines.horizontal[j]
-
             const dx = trailMouse.x - baseX
             const dy = trailMouse.y - baseY
             const dist = Math.sqrt(dx * dx + dy * dy)
@@ -301,31 +292,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           }
         }
 
-        const getNode = (col: number, row: number) => {
-          if (nodes[col] && nodes[col][row]) {
-            return nodes[col][row]
-          }
-          const baseX = gridLines.vertical[col] !== undefined
-            ? gridLines.vertical[col]
-            : (gridLines.vertical[0] + col * squareSize)
-          const baseY = gridLines.horizontal[row] !== undefined
-            ? gridLines.horizontal[row]
-            : (gridLines.horizontal[0] + row * squareSize)
-
-          const dx = trailMouse.x - baseX
-          const dy = trailMouse.y - baseY
-          const dist = Math.sqrt(dx * dx + dy * dy)
-          let tx = baseX
-          let ty = baseY
-          const finalInfluence = canvasCardsActive ? influenceRadius : 0
-          if (finalInfluence > 0 && dist < finalInfluence && dist > 0) {
-            const power = Math.pow(1 - dist / finalInfluence, 1.5)
-            tx += dx * power * strength * currentMultiplier
-            ty += dy * power * strength * currentMultiplier
-          }
-          return { x: tx, y: ty }
-        }
-
         // Draw horizontal stretches
         for (let j = 0; j < numRows; j++) {
           for (let i = 0; i < numCols - 1; i++) {
@@ -336,10 +302,8 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
             const dx = midX - trailMouse.x
             const dy = midY - trailMouse.y
             const dist = Math.sqrt(dx * dx + dy * dy)
-            
-            // Default dark-gray color (#212121 / 33, 33, 33) blends into dynamic sage green highlight (#719C82 / 113, 156, 130)
-            let r = 33, g = 33, b = 33;
-            let localOpacity = 0.14; // Default resting opacity (more visible)
+            let r = 33, g = 33, b = 33
+            let localOpacity = 0.14
             if (dist < influenceRadius && dist > 0) {
               const force = (influenceRadius - dist) / influenceRadius
               const smoothForce = Math.sin(force * Math.PI / 2)
@@ -349,7 +313,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
               localOpacity = 0.14 + (0.7 - 0.14) * smoothForce
             }
             ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${localOpacity * lineOpacity})`
-
             ctx.beginPath()
             if (i === 0) {
               ctx.moveTo(0, p1.y)
@@ -375,9 +338,8 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
             const dx = midX - trailMouse.x
             const dy = midY - trailMouse.y
             const dist = Math.sqrt(dx * dx + dy * dy)
-            
-            let r = 33, g = 33, b = 33;
-            let localOpacity = 0.14;
+            let r = 33, g = 33, b = 33
+            let localOpacity = 0.14
             if (dist < influenceRadius && dist > 0) {
               const force = (influenceRadius - dist) / influenceRadius
               const smoothForce = Math.sin(force * Math.PI / 2)
@@ -387,7 +349,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
               localOpacity = 0.14 + (0.7 - 0.14) * smoothForce
             }
             ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${localOpacity * lineOpacity})`
-
             ctx.beginPath()
             if (j === 0) {
               ctx.moveTo(p1.x, 0)
@@ -410,9 +371,8 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
             const dx = node.x - trailMouse.x
             const dy = node.y - trailMouse.y
             const dist = Math.sqrt(dx * dx + dy * dy)
-            
-            let r = 33, g = 33, b = 33;
-            let localOpacity = 0.45 // Default dots opacity (more visible)
+            let r = 33, g = 33, b = 33
+            let localOpacity = 0.45
             if (dist < influenceRadius && dist > 0) {
               const force = (influenceRadius - dist) / influenceRadius
               const smoothForce = Math.sin(force * Math.PI / 2)
@@ -434,18 +394,18 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
             if (!cardPos) return
             const colIndex = nodesColOffset + colOffset + cardPos.col
             const rowIndex = nodesRowOffset + rowOffset + cardPos.row
-            const c1 = getNode(colIndex, rowIndex)
-            const c2 = getNode(colIndex + cardPos.w, rowIndex)
-            const c4 = getNode(colIndex, rowIndex + cardPos.h)
-            const cardW = cardPos.w * squareSize + lineWidth
-            const cardH = cardPos.h * squareSize + lineWidth
+            const c1 = nodes[colIndex][rowIndex]
+            const c2 = nodes[colIndex + cardPos.w][rowIndex]
+            const c4 = nodes[colIndex][rowIndex + cardPos.h]
+            const cardW = cardPos.w * squareSize + 2
+            const cardH = cardPos.h * squareSize + 2
 
             for (let u = 0; u < cardPos.w; u++) {
               for (let v = 0; v < cardPos.h; v++) {
-                const sc1 = getNode(colIndex + u, rowIndex + v)
-                const sc2 = getNode(colIndex + u + 1, rowIndex + v)
-                const sc3 = getNode(colIndex + u + 1, rowIndex + v + 1)
-                const sc4 = getNode(colIndex + u, rowIndex + v + 1)
+                const sc1 = nodes[colIndex + u][rowIndex + v]
+                const sc2 = nodes[colIndex + u + 1][rowIndex + v]
+                const sc3 = nodes[colIndex + u + 1][rowIndex + v + 1]
+                const sc4 = nodes[colIndex + u][rowIndex + v + 1]
                 ctx.fillStyle = tool.bgColor
                 ctx.beginPath()
                 ctx.moveTo(sc1.x, sc1.y)
@@ -462,9 +422,7 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
             const ay = (c2.y - c1.y) / cardW
             const bx = (c4.x - c1.x) / cardH
             const by = (c4.y - c1.y) / cardH
-
             ctx.transform(ax, ay, bx, by, c1.x, c1.y)
-
             ctx.fillStyle = 'rgba(255, 255, 255, 0.05)'
             ctx.fillRect(0, 0, cardW, cardH)
 
@@ -474,22 +432,18 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
               const maxH = cardH * 0.6
               const imgRatio = logoImg.naturalWidth / logoImg.naturalHeight
               const containerRatio = maxW / maxH
-
               let logoW = maxW
               let logoH = maxH
-
               if (imgRatio > containerRatio) {
                 logoH = maxW / imgRatio
               } else {
                 logoW = maxH * imgRatio
               }
-
               ctx.imageSmoothingEnabled = true
               ctx.imageSmoothingQuality = 'high'
               ctx.drawImage(logoImg, (cardW - logoW) / 2, (cardH - logoH) / 2, logoW, logoH)
             }
             ctx.restore()
-
             ctx.strokeStyle = '#212121'
             ctx.lineWidth = 1.5
             ctx.beginPath()
@@ -502,7 +456,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
         }
       } else {
         ctx.strokeStyle = `rgba(33, 33, 33, ${0.14 * lineOpacity})`
-
         for (let i = 0; i < numCols; i++) {
           const baseX = gridLines.vertical[i]
           const dirCol = i % 2 === 0 ? 1 : -1
@@ -536,7 +489,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
         }
       }
       ctx.restore()
-
       animId = requestAnimationFrame(draw)
     }
     draw()
@@ -548,7 +500,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
       window.removeEventListener('mouseleave', handleMouseLeave)
       window.removeEventListener('mousedown', handleMouseDown)
       window.removeEventListener('mouseup', handleMouseUp)
-
       window.removeEventListener('touchstart', handleTouchStart)
       window.removeEventListener('touchmove', handleTouchMove)
       window.removeEventListener('touchend', handleTouchEnd)
@@ -613,13 +564,11 @@ export default function ToolsSection() {
       const rows = isMob ? 14 : Math.floor(h / squareSize)
       const padLeft = Math.floor((w - (cols * squareSize)) / 2)
       const padTop = Math.floor((h - (rows * squareSize)) / 2)
-
       const vertical: number[] = []
       let vPos = padLeft
       while (vPos >= 0) { vertical.push(vPos); vPos -= squareSize }
       vPos = padLeft + squareSize
       while (vPos <= w) { vertical.push(vPos); vPos += squareSize }
-
       const horizontal: number[] = []
       let hPos = padTop
       while (hPos >= 0) { horizontal.push(hPos); hPos -= squareSize }
@@ -668,6 +617,7 @@ export default function ToolsSection() {
     const lenis = (window as any).lenis
     if (!lenis || !cardsLaunched) return
     lenis.stop()
+
     document.documentElement.style.setProperty('overflow', 'auto', 'important')
     document.documentElement.style.setProperty('overflow-y', 'scroll', 'important')
     const timer = setTimeout(() => {
@@ -686,12 +636,9 @@ export default function ToolsSection() {
   const lightBgOpacity = useTransform(scrollYProgress, (pos) => (pos < 0.46 ? 0 : 1))
   const textScale = useTransform(scrollYProgress, [0.0, 0.25, 0.37, 0.45, 0.46], [1, 2.2, 8, 35, 160])
   const transformOrigin = isMobile ? '49.3% 41.5%' : '49.3% 52%'
-
   const layout = isMobile ? MOBILE_LAYOUT : DESKTOP_LAYOUT
-  const layoutWidth = isMobile ? 8 : 26
-  const layoutHeight = isMobile ? 14 : 11
-  const colOffset = Math.max(0, Math.floor((gridData.cols - layoutWidth) / 2))
-  const rowOffset = Math.max(0, Math.floor((gridData.rows - layoutHeight) / 2))
+  const colOffset = Math.max(0, Math.floor((gridData.cols - (isMobile ? 8 : 26)) / 2))
+  const rowOffset = Math.max(0, Math.floor((gridData.rows - (isMobile ? 14 : 11)) / 2))
   const lineWidth = 2
 
   const cardVariants = {
