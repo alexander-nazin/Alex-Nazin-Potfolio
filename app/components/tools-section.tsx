@@ -129,7 +129,7 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
     let isMouseDown = false
     let isMouseOverCanvas = false
     
-    // Manually manages 2D elastic particle grid nodes
+    // Stable persistent particle net coordinates
     interface Particle {
       x: number
       y: number
@@ -140,10 +140,18 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
     }
     let particles: Particle[][] = []
     
+    // Active wavefronts propagating across the grid
+    interface Pluck {
+      x: number
+      y: number
+      time: number
+    }
+    const plucks: Pluck[] = []
+    
     const numCols = gridLines.vertical.length
     const numRows = gridLines.horizontal.length
     
-    // Safely reconstruct particles grid when screen resizes
+    // Reconstruct particles grid when screen dimensions update
     let rebuild = false
     if (particles.length !== numCols) {
       rebuild = true
@@ -214,29 +222,14 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
         e.clientY <= rect.bottom
 
       if (isMobileDevice) {
-        if (isStickyActive && isInside && particles.length === numCols) {
+        if (isStickyActive && isInside) {
           const tapX = e.clientX - rect.left
           const tapY = e.clientY - rect.top
-          
-          const pullRadius = 120
-          const pullStrength = 0.35
-          
-          for (let i = 0; i < numCols; i++) {
-            for (let j = 0; j < numRows; j++) {
-              const p = particles[i]?.[j]
-              if (!p) continue
-              const dx = tapX - p.baseX
-              const dy = tapY - p.baseY
-              const dist = Math.sqrt(dx * dx + dy * dy)
-              if (dist < pullRadius && dist > 0) {
-                const force = (1 - dist / pullRadius) * pullStrength
-                p.x += dx * force
-                p.y += dy * force
-                p.vx += (dx / dist) * 2 * (1 - dist / pullRadius)
-                p.vy += (dy / dist) * 2 * (1 - dist / pullRadius)
-              }
-            }
-          }
+          plucks.push({
+            x: tapX,
+            y: tapY,
+            time: 0
+          })
         }
       } else {
         if (isMouseOverCanvas) {
@@ -261,29 +254,14 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           touch.clientY <= rect.bottom
         if (isStickyActive && isInside) {
           const isMobileDevice = window.innerWidth < 768
-          if (isMobileDevice && particles.length === numCols) {
+          if (isMobileDevice) {
             const tapX = touch.clientX - rect.left
             const tapY = touch.clientY - rect.top
-            
-            const pullRadius = 120
-            const pullStrength = 0.35
-            
-            for (let i = 0; i < numCols; i++) {
-              for (let j = 0; j < numRows; j++) {
-                const p = particles[i]?.[j]
-                if (!p) continue
-                const dx = tapX - p.baseX
-                const dy = tapY - p.baseY
-                const dist = Math.sqrt(dx * dx + dy * dy)
-                if (dist < pullRadius && dist > 0) {
-                  const force = (1 - dist / pullRadius) * pullStrength
-                  p.x += dx * force
-                  p.y += dy * force
-                  p.vx += (dx / dist) * 2 * (1 - dist / pullRadius)
-                  p.vy += (dy / dist) * 2 * (1 - dist / pullRadius)
-                }
-              }
-            }
+            plucks.push({
+              x: tapX,
+              y: tapY,
+              time: 0
+            })
           } else {
             mouse.x = touch.clientX
             mouse.y = touch.clientY
@@ -298,7 +276,7 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
     
     const handleTouchMove = (e: TouchEvent) => {
       const isMobileDevice = window.innerWidth < 768
-      if (isMobileDevice) return // Prevent dragging behavior on mobile scroll
+      if (isMobileDevice) return // Banish drag/slide interactions on mobile
       
       if (e.touches.length > 0) {
         const rect = canvas.getBoundingClientRect()
@@ -353,44 +331,52 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
         trailMouse.y += (mouse.y - trailMouse.y) * 0.15
       }
       
-      // High-tension, bouncier Mass-Spring-Damper settings (Humming Guitar String behavior)
-      const stiffness = 0.18
-      const tension = 0.25
-      const damping = 0.95
+      // Snappier, 100% stable guitar string constants (no neighbor tension to explode)
+      const stiffness = 0.15
+      const damping = 0.90
+      const waveSpeed = 8 // slower, clearly traceable wavefront propagation
       
+      // Update propagating plucks
+      const maxRadius = Math.max(window.innerWidth, window.innerHeight) * 1.3
+      for (let pIdx = plucks.length - 1; pIdx >= 0; pIdx--) {
+        plucks[pIdx].time += 1
+        if (plucks[pIdx].time * waveSpeed > maxRadius) {
+          plucks.splice(pIdx, 1)
+        }
+      }
+      
+      // Physical Integration: Update nodes independently so they cannot trigger chaotic feedback
       if (numCols > 0 && numRows > 0 && particles.length === numCols) {
         for (let i = 0; i < numCols; i++) {
           for (let j = 0; j < numRows; j++) {
             const p = particles[i]?.[j]
             if (!p) continue
             
+            // Core spring pull back to resting anchor
             let ax = -stiffness * (p.x - p.baseX)
             let ay = -stiffness * (p.y - p.baseY)
             
-            // Sharing spring displacement with neighboring ropes (rapid wave propagation)
-            let neighborDisplacementX = 0
-            let neighborDisplacementY = 0
-            let neighborsCount = 0
-            
-            const neighbors = [
-              [i - 1, j],
-              [i + 1, j],
-              [i, j - 1],
-              [i, j + 1]
-            ]
-            
-            for (const [ni, nj] of neighbors) {
-              const neighbor = particles[ni]?.[nj]
-              if (neighbor) {
-                neighborDisplacementX += (neighbor.x - neighbor.baseX) - (p.x - p.baseX)
-                neighborDisplacementY += (neighbor.y - neighbor.baseY) - (p.y - p.baseY)
-                neighborsCount++
+            // Pluck intersections precisely as active wave fronts cross them
+            for (const pluck of plucks) {
+              const dx = p.baseX - pluck.x
+              const dy = p.baseY - pluck.y
+              const dist = Math.sqrt(dx * dx + dy * dy)
+              if (dist > 0) {
+                const waveRadius = pluck.time * waveSpeed
+                const diff = dist - waveRadius
+                const waveWidth = 35 // sharp concentric pluck band
+                if (Math.abs(diff) < waveWidth) {
+                  const progress = diff / waveWidth
+                  const envelope = Math.cos(progress * Math.PI / 2)
+                  const forceFactor = Math.sin(progress * Math.PI) * envelope
+                  const pluckForce = 1.6 // high tension snappy plucked acceleration
+                  const decay = Math.max(0, 1 - waveRadius / maxRadius)
+                  
+                  // Displace along the radial wave direction vector
+                  ax += (dx / dist) * forceFactor * pluckForce * decay
+                  ay += (dy / dist) * forceFactor * pluckForce * decay
+                }
               }
-            }
-            
-            if (neighborsCount > 0) {
-              ax += (tension * neighborDisplacementX) / neighborsCount
-              ay += (tension * neighborDisplacementY) / neighborsCount
             }
             
             p.vx += ax
