@@ -331,10 +331,10 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
         trailMouse.y += (mouse.y - trailMouse.y) * 0.15
       }
       
-      // Snappier, 100% stable guitar string constants (no neighbor tension to explode)
-      const stiffness = 0.15
-      const damping = 0.90
-      const waveSpeed = 8 // slower, clearly traceable wavefront propagation
+      // Extreme snap-back and damping settings (Plucked guitar string shivering)
+      const stiffness = 0.35
+      const damping = 0.72
+      const waveSpeed = 26 // Near-instant propagation velocity
       
       // Update propagating plucks
       const maxRadius = Math.max(window.innerWidth, window.innerHeight) * 1.3
@@ -364,12 +364,12 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
               if (dist > 0) {
                 const waveRadius = pluck.time * waveSpeed
                 const diff = dist - waveRadius
-                const waveWidth = 35 // sharp concentric pluck band
+                const waveWidth = 20 // Ultra thin, sharp shockwave front
                 if (Math.abs(diff) < waveWidth) {
                   const progress = diff / waveWidth
                   const envelope = Math.cos(progress * Math.PI / 2)
                   const forceFactor = Math.sin(progress * Math.PI) * envelope
-                  const pluckForce = 1.6 // high tension snappy plucked acceleration
+                  const pluckForce = 16.0 // High impact pluck force (BANG!)
                   const decay = Math.max(0, 1 - waveRadius / maxRadius)
                   
                   // Displace along the radial wave direction vector
