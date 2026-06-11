@@ -129,12 +129,54 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
     let isMouseDown = false
     let isMouseOverCanvas = false
     
-    // Tracks active physical ripple waves spreading outward on mobile taps
-    const ripples: { x: number; y: number; radius: number; maxRadius: number; strength: number }[] = []
+    // Manually manages 2D elastic particle grid nodes
+    interface Particle {
+      x: number
+      y: number
+      vx: number
+      vy: number
+      baseX: number
+      baseY: number
+    }
+    let particles: Particle[][] = []
+    
+    const numCols = gridLines.vertical.length
+    const numRows = gridLines.horizontal.length
+    
+    // Safely reconstruct particles grid when screen resizes
+    let rebuild = false
+    if (particles.length !== numCols) {
+      rebuild = true
+    } else {
+      for (let i = 0; i < numCols; i++) {
+        if (!particles[i] || particles[i].length !== numRows) {
+          rebuild = true
+          break
+        }
+      }
+    }
+    
+    if (rebuild && numCols > 0 && numRows > 0) {
+      particles = []
+      for (let i = 0; i < numCols; i++) {
+        particles[i] = []
+        const baseX = gridLines.vertical[i]
+        for (let j = 0; j < numRows; j++) {
+          particles[i][j] = {
+            x: baseX,
+            y: gridLines.horizontal[j],
+            vx: 0,
+            vy: 0,
+            baseX: baseX,
+            baseY: gridLines.horizontal[j]
+          }
+        }
+      }
+    }
     
     const handleMouseMove = (e: MouseEvent) => {
       const isMobileDevice = window.innerWidth < 768
-      if (isMobileDevice) return // Disable hover track pulling on mobile devices
+      if (isMobileDevice) return 
       
       const rect = canvas.getBoundingClientRect()
       const isStickyActive = Math.abs(rect.top) < 10
@@ -172,16 +214,29 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
         e.clientY <= rect.bottom
 
       if (isMobileDevice) {
-        if (isStickyActive && isInside) {
+        if (isStickyActive && isInside && particles.length === numCols) {
           const tapX = e.clientX - rect.left
           const tapY = e.clientY - rect.top
-          ripples.push({
-            x: tapX,
-            y: tapY,
-            radius: 0,
-            maxRadius: Math.max(window.innerWidth, window.innerHeight) * 1.3,
-            strength: 1.0
-          })
+          
+          const pullRadius = 140
+          const pullStrength = 0.55
+          
+          for (let i = 0; i < numCols; i++) {
+            for (let j = 0; j < numRows; j++) {
+              const p = particles[i]?.[j]
+              if (!p) continue
+              const dx = tapX - p.baseX
+              const dy = tapY - p.baseY
+              const dist = Math.sqrt(dx * dx + dy * dy)
+              if (dist < pullRadius && dist > 0) {
+                const force = (1 - dist / pullRadius) * pullStrength
+                p.x += dx * force
+                p.y += dy * force
+                p.vx += (dx / dist) * 2 * (1 - dist / pullRadius)
+                p.vy += (dy / dist) * 2 * (1 - dist / pullRadius)
+              }
+            }
+          }
         }
       } else {
         if (isMouseOverCanvas) {
@@ -206,16 +261,29 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           touch.clientY <= rect.bottom
         if (isStickyActive && isInside) {
           const isMobileDevice = window.innerWidth < 768
-          if (isMobileDevice) {
+          if (isMobileDevice && particles.length === numCols) {
             const tapX = touch.clientX - rect.left
             const tapY = touch.clientY - rect.top
-            ripples.push({
-              x: tapX,
-              y: tapY,
-              radius: 0,
-              maxRadius: Math.max(window.innerWidth, window.innerHeight) * 1.3,
-              strength: 1.0
-            })
+            
+            const pullRadius = 140
+            const pullStrength = 0.55
+            
+            for (let i = 0; i < numCols; i++) {
+              for (let j = 0; j < numRows; j++) {
+                const p = particles[i]?.[j]
+                if (!p) continue
+                const dx = tapX - p.baseX
+                const dy = tapY - p.baseY
+                const dist = Math.sqrt(dx * dx + dy * dy)
+                if (dist < pullRadius && dist > 0) {
+                  const force = (1 - dist / pullRadius) * pullStrength
+                  p.x += dx * force
+                  p.y += dy * force
+                  p.vx += (dx / dist) * 2 * (1 - dist / pullRadius)
+                  p.vy += (dy / dist) * 2 * (1 - dist / pullRadius)
+                }
+              }
+            }
           } else {
             mouse.x = touch.clientX
             mouse.y = touch.clientY
@@ -230,7 +298,7 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
     
     const handleTouchMove = (e: TouchEvent) => {
       const isMobileDevice = window.innerWidth < 768
-      if (isMobileDevice) return // Prevent dragging or sliding interaction on mobile entirely
+      if (isMobileDevice) return // Prevent dragging behavior on mobile scroll
       
       if (e.touches.length > 0) {
         const rect = canvas.getBoundingClientRect()
@@ -285,13 +353,53 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
         trailMouse.y += (mouse.y - trailMouse.y) * 0.15
       }
       
-      // Update and prune completed dynamic ripples over time
-      const rippleSpeed = 8 // slower ripple propagation to clearly trace wave roll
-      for (let rIdx = ripples.length - 1; rIdx >= 0; rIdx--) {
-        const ripple = ripples[rIdx]
-        ripple.radius += rippleSpeed
-        if (ripple.radius >= ripple.maxRadius) {
-          ripples.splice(rIdx, 1)
+      // Real-time Mass-Spring-Damper integration on mobile plucks
+      const stiffness = 0.08
+      const tension = 0.15
+      const damping = 0.92
+      
+      if (numCols > 0 && numRows > 0 && particles.length === numCols) {
+        for (let i = 0; i < numCols; i++) {
+          for (let j = 0; j < numRows; j++) {
+            const p = particles[i]?.[j]
+            if (!p) continue
+            
+            let ax = -stiffness * (p.x - p.baseX)
+            let ay = -stiffness * (p.y - p.baseY)
+            
+            // Sharing spring displacement with neighboring ropes (wave propagation)
+            let neighborDisplacementX = 0
+            let neighborDisplacementY = 0
+            let neighborsCount = 0
+            
+            const neighbors = [
+              [i - 1, j],
+              [i + 1, j],
+              [i, j - 1],
+              [i, j + 1]
+            ]
+            
+            for (const [ni, nj] of neighbors) {
+              const neighbor = particles[ni]?.[nj]
+              if (neighbor) {
+                neighborDisplacementX += (neighbor.x - neighbor.baseX) - (p.x - p.baseX)
+                neighborDisplacementY += (neighbor.y - neighbor.baseY) - (p.y - p.baseY)
+                neighborsCount++
+              }
+            }
+            
+            if (neighborsCount > 0) {
+              ax += (tension * neighborDisplacementX) / neighborsCount
+              ay += (tension * neighborDisplacementY) / neighborsCount
+            }
+            
+            p.vx += ax
+            p.vy += ay
+            p.vx *= damping
+            p.vy *= damping
+            p.x += p.vx
+            p.y += p.vy
+          }
         }
       }
       
@@ -309,8 +417,6 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
       const rowOffset = Math.max(0, Math.floor((gridLines.rows - layoutHeight) / 2))
       const nodesColOffset = gridLines.vertical.filter(x => x < gridLines.padLeft).length
       const nodesRowOffset = gridLines.horizontal.filter(y => y < gridLines.padTop).length
-      const numCols = gridLines.vertical.length
-      const numRows = gridLines.horizontal.length
       
       if (numCols === 0 || numRows === 0) {
         ctx.restore()
@@ -329,47 +435,31 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
       if (cardsLaunched) {
         for (let i = 0; i < numCols; i++) {
           nodes[i] = []
-          const baseX = gridLines.vertical[i]
           for (let j = 0; j < numRows; j++) {
-            const baseY = gridLines.horizontal[j]
-            let tx = baseX
-            let ty = baseY
+            const p = particles[i]?.[j]
+            let tx, ty;
             
-            if (isMobileDevice) {
-              const finalInfluence = canvasCardsActive ? 1 : 0
-              if (finalInfluence > 0) {
-                // Apply radial physical waves generated by tapping
-                for (const ripple of ripples) {
-                  const dx = baseX - ripple.x
-                  const dy = baseY - ripple.y
-                  const dist = Math.sqrt(dx * dx + dy * dy)
-                  if (dist > 0) {
-                    const diff = dist - ripple.radius
-                    const waveWidth = 35 // sharp, short ripple wave width (like a small stone in water)
-                    if (Math.abs(diff) < waveWidth) {
-                      const progress = diff / waveWidth
-                      const envelope = Math.cos(progress * Math.PI / 2)
-                      const waveFactor = Math.sin(progress * Math.PI) * envelope
-                      const maxDisplacement = 12 // gentler wave peak
-                      const strengthFactor = ripple.strength * (1 - ripple.radius / ripple.maxRadius)
-                      const displacement = waveFactor * maxDisplacement * strengthFactor
-                      tx += (dx / dist) * displacement
-                      ty += (dy / dist) * displacement
-                    }
-                  }
-                }
-              }
-            } else {
-              // Standard Desktop pulling logic on mouse hover
+            if (isMobileDevice && p && canvasCardsActive) {
+              tx = p.x
+              ty = p.y
+            } else if (p) {
+              const baseX = p.baseX
+              const baseY = p.baseY
               const dx = trailMouse.x - baseX
               const dy = trailMouse.y - baseY
               const dist = Math.sqrt(dx * dx + dy * dy)
               const finalInfluence = canvasCardsActive ? influenceRadius : 0
               if (finalInfluence > 0 && dist < finalInfluence && dist > 0) {
                 const power = Math.pow(1 - dist / finalInfluence, 1.5)
-                tx += dx * power * strength * currentMultiplier
-                ty += dy * power * strength * currentMultiplier
+                tx = baseX + dx * power * strength * currentMultiplier
+                ty = baseY + dy * power * strength * currentMultiplier
+              } else {
+                tx = baseX
+                ty = baseY
               }
+            } else {
+              tx = gridLines.vertical[i]
+              ty = gridLines.horizontal[j]
             }
             
             nodes[i][j] = { x: tx, y: ty }
@@ -380,6 +470,14 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           if (nodes && nodes[col] && nodes[col][row]) {
             return nodes[col][row]
           }
+          
+          const p = particles[col]?.[row]
+          const isMobileDevice = window.innerWidth < 768
+          
+          if (isMobileDevice && p && canvasCardsActive) {
+            return { x: p.x, y: p.y }
+          }
+          
           const baseX = gridLines.vertical && gridLines.vertical[col] !== undefined
             ? gridLines.vertical[col]
             : ((gridLines.vertical && gridLines.vertical[0] !== undefined ? gridLines.vertical[0] : 0) + col * squareSize)
@@ -390,40 +488,16 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           let tx = baseX
           let ty = baseY
           
-          if (isMobileDevice) {
-            const finalInfluence = canvasCardsActive ? 1 : 0
-            if (finalInfluence > 0) {
-              for (const ripple of ripples) {
-                const dx = baseX - ripple.x
-                const dy = baseY - ripple.y
-                const dist = Math.sqrt(dx * dx + dy * dy)
-                if (dist > 0) {
-                  const diff = dist - ripple.radius
-                  const waveWidth = 35 // sharp, short ripple wave width
-                  if (Math.abs(diff) < waveWidth) {
-                    const progress = diff / waveWidth
-                    const envelope = Math.cos(progress * Math.PI / 2)
-                    const waveFactor = Math.sin(progress * Math.PI) * envelope
-                    const maxDisplacement = 12
-                    const strengthFactor = ripple.strength * (1 - ripple.radius / ripple.maxRadius)
-                    const displacement = waveFactor * maxDisplacement * strengthFactor
-                    tx += (dx / dist) * displacement
-                    ty += (dy / dist) * displacement
-                  }
-                }
-              }
-            }
-          } else {
-            const dx = trailMouse.x - baseX
-            const dy = trailMouse.y - baseY
-            const dist = Math.sqrt(dx * dx + dy * dy)
-            const finalInfluence = canvasCardsActive ? influenceRadius : 0
-            if (finalInfluence > 0 && dist < finalInfluence && dist > 0) {
-              const power = Math.pow(1 - dist / finalInfluence, 1.5)
-              tx += dx * power * strength * currentMultiplier
-              ty += dy * power * strength * currentMultiplier
-            }
+          const dx = trailMouse.x - baseX
+          const dy = trailMouse.y - baseY
+          const dist = Math.sqrt(dx * dx + dy * dy)
+          const finalInfluence = canvasCardsActive ? influenceRadius : 0
+          if (finalInfluence > 0 && dist < finalInfluence && dist > 0) {
+            const power = Math.pow(1 - dist / finalInfluence, 1.5)
+            tx += dx * power * strength * currentMultiplier
+            ty += dy * power * strength * currentMultiplier
           }
+          
           return { x: tx, y: ty }
         }
         
