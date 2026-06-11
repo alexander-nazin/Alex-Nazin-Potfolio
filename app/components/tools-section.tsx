@@ -345,7 +345,7 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
                   const dist = Math.sqrt(dx * dx + dy * dy)
                   if (dist > 0) {
                     const diff = dist - ripple.radius
-                    const waveWidth = 70 // gentler thin wave width
+                    const waveWidth = 35 // sharp, short ripple wave width (like a small stone in water)
                     if (Math.abs(diff) < waveWidth) {
                       const progress = diff / waveWidth
                       const envelope = Math.cos(progress * Math.PI / 2)
@@ -399,7 +399,7 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
                 const dist = Math.sqrt(dx * dx + dy * dy)
                 if (dist > 0) {
                   const diff = dist - ripple.radius
-                  const waveWidth = 70
+                  const waveWidth = 35 // sharp, short ripple wave width
                   if (Math.abs(diff) < waveWidth) {
                     const progress = diff / waveWidth
                     const envelope = Math.cos(progress * Math.PI / 2)
