@@ -218,8 +218,8 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
           const tapX = e.clientX - rect.left
           const tapY = e.clientY - rect.top
           
-          const pullRadius = 140
-          const pullStrength = 0.55
+          const pullRadius = 120
+          const pullStrength = 0.35
           
           for (let i = 0; i < numCols; i++) {
             for (let j = 0; j < numRows; j++) {
@@ -265,8 +265,8 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
             const tapX = touch.clientX - rect.left
             const tapY = touch.clientY - rect.top
             
-            const pullRadius = 140
-            const pullStrength = 0.55
+            const pullRadius = 120
+            const pullStrength = 0.35
             
             for (let i = 0; i < numCols; i++) {
               for (let j = 0; j < numRows; j++) {
@@ -353,10 +353,10 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
         trailMouse.y += (mouse.y - trailMouse.y) * 0.15
       }
       
-      // Real-time Mass-Spring-Damper integration on mobile plucks
-      const stiffness = 0.08
-      const tension = 0.15
-      const damping = 0.92
+      // High-tension, bouncier Mass-Spring-Damper settings (Humming Guitar String behavior)
+      const stiffness = 0.18
+      const tension = 0.25
+      const damping = 0.95
       
       if (numCols > 0 && numRows > 0 && particles.length === numCols) {
         for (let i = 0; i < numCols; i++) {
@@ -367,7 +367,7 @@ const BlueprintGrid: React.FC<BlueprintGridProps> = ({ scrollYProgress, gridLine
             let ax = -stiffness * (p.x - p.baseX)
             let ay = -stiffness * (p.y - p.baseY)
             
-            // Sharing spring displacement with neighboring ropes (wave propagation)
+            // Sharing spring displacement with neighboring ropes (rapid wave propagation)
             let neighborDisplacementX = 0
             let neighborDisplacementY = 0
             let neighborsCount = 0
@@ -892,7 +892,7 @@ export default function ToolsSection() {
   
   const crossVariants = {
     hidden: (idx: number) => ({ opacity: 0, scale: 0, transition: { duration: 0.2, ease: "easeIn", delay: (5 - idx) * 0.05 + 0.35 } }),
-    visible: (idx: number) => ({ opacity: 1, scale: 1, transition: { type: "spring", stiffness: 150, damping: 12, delay: idx * 0.1 } })
+    visible: (idx: number) => ({ opacity: 1, scale: 1, transition: { type: "spring", stiffness: 120, damping: 14, delay: idx * 0.1 + 0.90 } })
   }
   
   const fillVariants = {
